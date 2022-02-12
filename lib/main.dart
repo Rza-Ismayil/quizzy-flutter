@@ -1,5 +1,8 @@
+import 'package:rflutter_alert/rflutter_alert.dart';
 import 'package:flutter/material.dart';
-import 'question.dart';
+import 'quiz_brain.dart';
+
+QuizBrain quizBrain = QuizBrain();
 
 void main() {
   runApp(const Quizzy());
@@ -32,6 +35,15 @@ class QuizPage extends StatefulWidget {
 }
 
 class _QuizPageState extends State<QuizPage> {
+  List<Icon> scoreKeeper = [];
+
+  void restartApp() {
+    setState(() {
+      quizBrain.resetQuiz();
+      scoreKeeper.clear();
+    });
+  }
+
   Icon getCorrectIcon() => const Icon(
         Icons.check,
         color: Colors.green,
@@ -42,24 +54,55 @@ class _QuizPageState extends State<QuizPage> {
         color: Colors.red,
       );
 
-  List<Icon> scoreKeeper = [];
-
-  List<Question> questions = [
-    Question(q: 'You can lead a cow down stairs but not up stairs.', a: false),
-    Question(
-        q: 'Approximately one quarter of human bones are in the feet.',
-        a: true),
-    Question(q: 'A slug\'s blood is green.', a: true),
-  ];
-
-  int questionIndex = 0;
-
   void questionSubmitted(bool answer) {
-    if (answer == questions[questionIndex].questionAnswer) {
-      scoreKeeper.add(getCorrectIcon());
+    if (quizBrain.isQuizOver()) {
+      Alert(
+        context: context,
+        title: "FINISHED!",
+        desc: "You have reached the end of quiz.",
+        buttons: [
+          DialogButton(
+            child: const Text("RESTART"),
+            onPressed: () {
+              restartApp();
+              Navigator.pop(context);
+            },
+          )
+        ],
+      ).show();
     } else {
-      scoreKeeper.add(getIncorrectIcon());
+      if (answer == quizBrain.getAnswer()) {
+        scoreKeeper.add(getCorrectIcon());
+      } else {
+        scoreKeeper.add(getIncorrectIcon());
+      }
     }
+  }
+
+  Expanded generateButton(bool answer) {
+    String text = answer == true ? 'True' : 'False';
+    MaterialColor color = answer == true ? Colors.green : Colors.red;
+    return Expanded(
+      child: Padding(
+        padding: const EdgeInsets.all(15.0),
+        child: TextButton(
+          child: Text(
+            text,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 20.0,
+            ),
+          ),
+          style: ButtonStyle(
+            backgroundColor: MaterialStateProperty.all<Color>(color),
+          ),
+          onPressed: () => setState(() {
+            questionSubmitted(answer);
+            quizBrain.nextQuestion();
+          }),
+        ),
+      ),
+    );
   }
 
   @override
@@ -74,7 +117,7 @@ class _QuizPageState extends State<QuizPage> {
             padding: const EdgeInsets.all(10.0),
             child: Center(
               child: Text(
-                questions[questionIndex].questionText,
+                quizBrain.getQuestion(),
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontSize: 25.0,
@@ -84,50 +127,13 @@ class _QuizPageState extends State<QuizPage> {
             ),
           ),
         ),
-        Expanded(
-          child: Padding(
-            padding: const EdgeInsets.all(15.0),
-            child: TextButton(
-              child: const Text(
-                'True',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 20.0,
-                ),
-              ),
-              style: ButtonStyle(
-                backgroundColor: MaterialStateProperty.all<Color>(Colors.green),
-              ),
-              onPressed: () => setState(() {
-                questionSubmitted(true);
-                if (questionIndex < 2) questionIndex++;
-              }),
-            ),
+        generateButton(true),
+        generateButton(false),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: scoreKeeper,
           ),
-        ),
-        Expanded(
-          child: Padding(
-            padding: const EdgeInsets.all(15.0),
-            child: TextButton(
-              child: const Text(
-                'False',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 20.0,
-                ),
-              ),
-              style: ButtonStyle(
-                backgroundColor: MaterialStateProperty.all<Color>(Colors.red),
-              ),
-              onPressed: () => setState(() {
-                questionSubmitted(false);
-                if (questionIndex < 2) questionIndex++;
-              }),
-            ),
-          ),
-        ),
-        Row(
-          children: scoreKeeper,
         ),
       ],
     );
